@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分享 Let Past Go</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            background-color: #2a2a2a;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            color: #ff4444;
+        }
+
+        .share-box {
+            background-color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .url-box {
+            background-color: #444;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            word-break: break-all;
+        }
+
+        .copy-button {
+            background: linear-gradient(45deg, #ff0000, #ff4444);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .copy-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
+        }
+
+        .qr-code {
+            margin: 20px auto;
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
+            width: 200px;
+            height: 200px;
+        }
+
+        .qr-code img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .share-text {
+            color: #cccccc;
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>分享 Let Past Go</h1>
+        <p class="share-text">扫描二维码或点击链接访问网站</p>
+        
+        <div class="share-box">
+            <div class="url-box" id="urlBox">
+                https://jamljj.github.io/let-past-go
+            </div>
+            <button class="copy-button" onclick="copyUrl()">复制链接</button>
+        </div>
+
+        <div class="qr-code">
+            <!-- 这里需要替换为实际的二维码图片 -->
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://[您的GitHub用户名].github.io/let-past-go" alt="QR Code">
+        </div>
+    </div>
+
+    <script>
+        function copyUrl() {
+            const urlBox = document.getElementById('urlBox');
+            const text = urlBox.textContent;
+            
+            // 创建临时文本区域
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            
+            // 选择并复制文本
+            textarea.select();
+            document.execCommand('copy');
+            
+            // 移除临时文本区域
+            document.body.removeChild(textarea);
+            
+            // 显示复制成功提示
+            alert('链接已复制到剪贴板！');
+        }
+    </script>
+</body>
+</html> 
