@@ -8,7 +8,7 @@
         body {
             margin: 0;
             padding: 20px;
-            background-color: #1a1a1a;
+            background: linear-gradient(to bottom, #1a1a1a 0%, #1a1a1a 70%, #006994 70%, #006994 100%);
             color: white;
             font-family: Arial, sans-serif;
             min-height: 100vh;
@@ -16,6 +16,7 @@
             flex-direction: column;
             align-items: center;
             overflow: hidden;
+            position: relative;
         }
 
         .container {
@@ -117,22 +118,25 @@
             color: white;
             pointer-events: none;
             animation: fall 3s linear forwards;
-            opacity: 0.8;
+            opacity: 1;
             transform-origin: center;
-            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
             white-space: nowrap;
+            font-weight: bold;
+            z-index: 100;
+            letter-spacing: 1px;
         }
 
         @keyframes fall {
             0% {
                 transform: translateY(0) rotate(0deg) scale(1);
-                opacity: 0.8;
+                opacity: 1;
             }
             50% {
-                opacity: 0.5;
+                opacity: 0.8;
             }
             100% {
-                transform: translateY(100vh) rotate(360deg) scale(0.5);
+                transform: translateY(100vh) rotate(360deg) scale(0.9);
                 opacity: 0;
             }
         }
@@ -171,6 +175,96 @@
             padding: 20px;
             border-radius: 10px;
         }
+
+        /* 添加移动端适配 */
+        @media screen and (max-width: 768px) {
+            .text-fragment {
+                text-shadow: 0 0 15px rgba(255, 255, 255, 1);
+                letter-spacing: 2px;
+            }
+
+            @keyframes fall {
+                0% {
+                    transform: translateY(0) rotate(0deg) scale(1);
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.9;
+                }
+                100% {
+                    transform: translateY(100vh) rotate(360deg) scale(1);
+                    opacity: 0;
+                }
+            }
+        }
+
+        .canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 99;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .water-surface {
+            position: fixed;
+            bottom: 30%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, 
+                transparent 0%,
+                rgba(255, 255, 255, 0.3) 20%,
+                rgba(255, 255, 255, 0.5) 50%,
+                rgba(255, 255, 255, 0.3) 80%,
+                transparent 100%
+            );
+            z-index: 10;
+        }
+
+        .fish {
+            position: absolute;
+            width: 100px;
+            height: 60px;
+            z-index: 5;
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
+        }
+
+        .fish img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+
+        .fish.jumping {
+            animation: jump 1s ease-in-out;
+        }
+
+        .fish.jumping img {
+            transform: rotate(15deg);
+        }
+
+        @keyframes jump {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-150px) rotate(15deg);
+            }
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+        }
     </style>
 </head>
 <body>
@@ -185,25 +279,164 @@
         <button onclick="destroyPast()">摧毁过去</button>
     </div>
 
+    <!-- 添加水面 -->
+    <div class="water-surface"></div>
+
+    <!-- 添加鱼 -->
+    <div id="fish-container"></div>
+
+    <!-- 添加Canvas容器 -->
+    <div class="canvas-container">
+        <canvas id="particleCanvas"></canvas>
+    </div>
+
     <!-- 添加弹窗 -->
     <div class="modal" id="messageModal">
         <div class="modal-content">开启新的一天吧</div>
     </div>
 
     <script>
+        // 创建鱼
+        function createFish() {
+            const fish = document.createElement('div');
+            fish.className = 'fish';
+            
+            // 创建图片元素
+            const img = document.createElement('img');
+            // 使用本地图片
+            const fishImages = [
+                './images/fish1.png',
+                './images/fish2.png'
+            ];
+            
+            img.src = fishImages[Math.floor(Math.random() * fishImages.length)];
+            img.alt = 'fish';
+            
+            fish.appendChild(img);
+            fish.style.left = Math.random() * window.innerWidth + 'px';
+            fish.style.bottom = Math.random() * 20 + 20 + '%';
+            fish.style.transform = `scaleX(${Math.random() > 0.5 ? 1 : -1})`;
+            
+            document.getElementById('fish-container').appendChild(fish);
+            return fish;
+        }
+
+        // 初始化鱼群
+        const fishes = [];
+        for (let i = 0; i < 3; i++) { // 减少鱼的数量，因为图片更大
+            const fish = createFish();
+            fishes.push(fish);
+            animateFish(fish);
+        }
+
+        // 鱼的游动动画
+        function animateFish(fish) {
+            const speed = 0.3 + Math.random() * 0.5; // 降低速度使游动更自然
+            const direction = fish.style.transform.includes('-1') ? -1 : 1;
+            let position = parseFloat(fish.style.left);
+            let depth = parseFloat(fish.style.bottom);
+            let targetDepth = depth;
+
+            function move() {
+                // 水平移动
+                position += speed * direction;
+                if (position > window.innerWidth) {
+                    position = 0;
+                    fish.style.transform = 'scaleX(1)';
+                } else if (position < 0) {
+                    position = window.innerWidth;
+                    fish.style.transform = 'scaleX(-1)';
+                }
+                fish.style.left = position + 'px';
+
+                // 垂直移动
+                if (Math.abs(depth - targetDepth) < 0.1) {
+                    targetDepth = Math.random() * 20 + 20;
+                }
+                depth += (targetDepth - depth) * 0.01; // 降低垂直移动速度
+                fish.style.bottom = depth + '%';
+
+                requestAnimationFrame(move);
+            }
+
+            move();
+        }
+
+        // 检查文字碎片是否接近水面
+        function checkFragmentPosition(fragment) {
+            const rect = fragment.getBoundingClientRect();
+            const waterSurface = document.querySelector('.water-surface');
+            const waterRect = waterSurface.getBoundingClientRect();
+            
+            // 如果文字碎片接近水面
+            if (rect.bottom >= waterRect.top - 100) {
+                // 找到最近的鱼
+                const nearestFish = findNearestFish(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                if (nearestFish) {
+                    // 让鱼游向文字
+                    makeFishJump(nearestFish, fragment);
+                }
+            }
+        }
+
+        // 找到最近的鱼
+        function findNearestFish(x, y) {
+            let nearest = null;
+            let minDistance = Infinity;
+            
+            fishes.forEach(fish => {
+                const fishRect = fish.getBoundingClientRect();
+                const fishX = fishRect.left + fishRect.width / 2;
+                const fishY = fishRect.top + fishRect.height / 2;
+                const distance = Math.sqrt(Math.pow(fishX - x, 2) + Math.pow(fishY - y, 2));
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearest = fish;
+                }
+            });
+            
+            return minDistance < 300 ? nearest : null;
+        }
+
+        // 让鱼跳跃
+        function makeFishJump(fish, fragment) {
+            fish.classList.add('jumping');
+            
+            // 移除文字碎片
+            fragment.remove();
+            
+            // 动画结束后移除跳跃类
+            setTimeout(() => {
+                fish.classList.remove('jumping');
+            }, 1000);
+        }
+
         function createTextFragment(text, x, y) {
             const fragment = document.createElement('div');
             fragment.className = 'text-fragment';
             fragment.textContent = text;
             fragment.style.left = x + 'px';
             fragment.style.top = y + 'px';
-            fragment.style.fontSize = Math.random() * 8 + 6 + 'px';
-            fragment.style.color = `rgba(255, 255, 255, ${Math.random() * 0.5 + 0.5})`;
+            
+            // 根据屏幕宽度调整字体大小
+            const isMobile = window.innerWidth <= 768;
+            const baseSize = isMobile ? 32 : 24;
+            const randomSize = isMobile ? 30 : 20;
+            fragment.style.fontSize = Math.random() * randomSize + baseSize + 'px';
+            
+            fragment.style.color = `rgba(255, 255, 255, ${Math.random() * 0.2 + 0.8})`;
             fragment.style.transform = `rotate(${Math.random() * 360}deg)`;
             fragment.style.animationDuration = `${Math.random() * 2 + 2}s`;
             document.body.appendChild(fragment);
             
+            // 检查文字碎片位置
+            const checkInterval = setInterval(() => {
+                checkFragmentPosition(fragment);
+            }, 100);
+            
             fragment.addEventListener('animationend', () => {
+                clearInterval(checkInterval);
                 fragment.remove();
             });
         }
@@ -233,15 +466,19 @@
             const rect = textarea.getBoundingClientRect();
             const chars = text.split('');
             
-            // 计算每个字符的位置
-            const charWidth = rect.width / 50;
-            const charHeight = rect.height / 10;
+            // 根据屏幕宽度调整字符分布
+            const isMobile = window.innerWidth <= 768;
+            const columns = isMobile ? 8 : 12; // 减少列数使文字更分散
+            const rows = isMobile ? 4 : 6;
+            
+            const charWidth = rect.width / columns;
+            const charHeight = rect.height / rows;
             
             chars.forEach((char, index) => {
                 if (char !== ' ' && char !== '\n') {
-                    // 计算字符在文本框中的相对位置
-                    const x = rect.left + (index % 50) * charWidth;
-                    const y = rect.top + Math.floor(index / 50) * charHeight;
+                    const offset = isMobile ? 60 : 80; // 增加偏移量使文字更分散
+                    const x = rect.left + (index % columns) * charWidth + (Math.random() - 0.5) * offset;
+                    const y = rect.top + Math.floor(index / columns) * charHeight + (Math.random() - 0.5) * offset;
                     
                     // 创建碎片
                     createTextFragment(char, x, y);
